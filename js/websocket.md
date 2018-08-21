@@ -121,3 +121,66 @@ Payload data：(x+y) 字节
 应用数据：任意的应用数据，在扩展数据之后（如果存在扩展数据），占据了数据帧剩余的位置。载荷数据长度 减去 扩展数据长度，就得到应用数据的长度。
  
  
+ 
+ 
+ 6.保持心跳
+ 可以用ping  pong 接口
+ 
+ 7.掩码的作用
+ 
+ WebSocket协议中，数据掩码的作用是增强协议的安全性。但数据掩码并不是为了保护数据本身，因为算法本身是公开的，运算也不复杂。除了加密通道本身，似乎没有太多有效的保护通信安全的办法。
+
+那么为什么还要引入掩码计算呢，除了增加计算机器的运算量外似乎并没有太多的收益（这也是不少同学疑惑的点）。
+
+答案还是两个字：安全。但并不是为了防止数据泄密，而是为了防止早期版本的协议中存在的代理缓存污染攻击（proxy cache poisoning attacks）等问题。
+
+1、代理缓存污染攻击
+下面摘自2010年关于安全的一段讲话。其中提到了代理服务器在协议实现上的缺陷可能导致的安全问题。猛击出处。
+
+“We show, empirically, that the current version of the WebSocket consent mechanism is vulnerable to proxy cache poisoning attacks. Even though the WebSocket handshake is based on HTTP, which should be understood by most network intermediaries, the handshake uses the esoteric “Upgrade” mechanism of HTTP [5]. In our experiment, we find that many proxies do not implement the Upgrade mechanism properly, which causes the handshake to succeed even though subsequent traffic over the socket will be misinterpreted by the proxy.”
+
+[TALKING] Huang, L-S., Chen, E., Barth, A., Rescorla, E., and C.
+Jackson, "Talking to Yourself for Fun and Profit", 2010,
+
+在正式描述攻击步骤之前，我们假设有如下参与者：
+
+攻击者、攻击者自己控制的服务器（简称“邪恶服务器”）、攻击者伪造的资源（简称“邪恶资源”）
+受害者、受害者想要访问的资源（简称“正义资源”）
+受害者实际想要访问的服务器（简称“正义服务器”）
+中间代理服务器
+攻击步骤一：
+
+攻击者浏览器 向 邪恶服务器 发起WebSocket连接。根据前文，首先是一个协议升级请求。
+协议升级请求 实际到达 代理服务器。
+代理服务器 将协议升级请求转发到 邪恶服务器。
+邪恶服务器 同意连接，代理服务器 将响应转发给 攻击者。
+由于 upgrade 的实现上有缺陷，代理服务器 以为之前转发的是普通的HTTP消息。因此，当协议服务器 同意连接，代理服务器 以为本次会话已经结束。
+
+攻击步骤二：
+
+攻击者 在之前建立的连接上，通过WebSocket的接口向 邪恶服务器 发送数据，且数据是精心构造的HTTP格式的文本。其中包含了 正义资源 的地址，以及一个伪造的host（指向正义服务器）。（见后面报文）
+请求到达 代理服务器 。虽然复用了之前的TCP连接，但 代理服务器 以为是新的HTTP请求。
+代理服务器 向 邪恶服务器 请求 邪恶资源。
+邪恶服务器 返回 邪恶资源。代理服务器 缓存住 邪恶资源（url是对的，但host是 正义服务器 的地址）。
+到这里，受害者可以登场了：
+
+受害者 通过 代理服务器 访问 正义服务器 的 正义资源。
+代理服务器 检查该资源的url、host，发现本地有一份缓存（伪造的）。
+代理服务器 将 邪恶资源 返回给 受害者。
+受害者 卒。
+附：前面提到的精心构造的“HTTP请求报文”。
+
+Client → Server:
+POST /path/of/attackers/choice HTTP/1.1 Host: host-of-attackers-choice.com Sec-WebSocket-Key: <connection-key>
+Server → Client:
+HTTP/1.1 200 OK
+Sec-WebSocket-Accept: <connection-key>
+2、当前解决方案
+最初的提案是对数据进行加密处理。基于安全、效率的考虑，最终采用了折中的方案：对数据载荷进行掩码处理。
+
+需要注意的是，这里只是限制了浏览器对数据载荷进行掩码处理，但是坏人完全可以实现自己的WebSocket客户端、服务端，不按规则来，攻击可以照常进行。
+
+但是对浏览器加上这个限制后，可以大大增加攻击的难度，以及攻击的影响范围。如果没有这个限制，只需要在网上放个钓鱼网站骗人去访问，一下子就可以在短时间内展开大范围的攻击。
+
+
+来源[https://www.cnblogs.com/chyingp/p/websocket-deep-in.html]
