@@ -7,3 +7,5 @@
 [workbox](https://github.com/GoogleChrome/workbox/)
 
 [workbox源码笔记](http://sensai.powerpigger.cc/sensai/site/article/334)
+
+html5 新增标签和属性
