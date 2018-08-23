@@ -1,6 +1,7 @@
 # notebook
 笔记
 
+[js](https://github.com/servletyeah/notebook/tree/master/js)
 
 # todo
 
