@@ -17,3 +17,7 @@ http://levy.work/2017-03-24-black-magic-js-atob-with-utf8/
 
 escape只对基本平面的有处理，扩展平面是不支持的。
 但是怎么样支持unicode扩展平面，还需要查询
+
+http://outofmemory.cn/code-snippet/1179/php-achieve-javascript-de-escape-unescape-function
+
+http://ecmanaut.blogspot.com/2006/07/encoding-decoding-utf8-in-javascript.html
