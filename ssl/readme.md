@@ -1,4 +1,5 @@
- # 创建密钥
+# 创建密钥
+
 
 ```shell
 openssl genrsa -des3 -out rootCA.key 2048
@@ -33,7 +34,7 @@ openssl req -new -sha256 -nodes -out server.csr -newkey rsa:2048 -keyout server.
 openssl x509 -req -in server.csr -CA [rootCA.pem路径] -CAkey [rootCA.key路径] -CAcreateserial -out server.crt -days 500 -sha256 -extfile v3.ext
 ```
 
- 证书格式转换
+# 证书格式转换
 
 ```shell
 openssl x509 -outform der -in rootCA.pem -out rootCA.crt
